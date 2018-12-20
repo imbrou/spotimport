@@ -1,0 +1,13 @@
+{
+  "name": "spotimport",
+  "version": "1.0.0",
+  "description": "Import playlists from text files to your Spotify account.",
+  "main": "app.js",
+  "repository": "git@github.com:imbrou/spotimport.git",
+  "author": "imbrou <brousse@lilo.org>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "spotify-web-api-node": "^4.0.0"
+  }
+}
