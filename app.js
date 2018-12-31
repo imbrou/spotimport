@@ -69,10 +69,10 @@ var firstTrackResultFor = async function firstTrackResultFor (queryTerm) {
 	try {
 		let data = await s.searchTracks(queryTerm, {limit: 5}) ;
 		track = data.body.tracks.items[0] ;
-		console.log("Found:") ;
-		console.log(`\tName: ${track.name}`) ;
-		console.log(`\tArtist: ${track.artists[0].name}`) ;
-		console.log(`\tURI: ${track.uri}`) ;
+		//console.log("Found:") ;
+		//console.log(`\tName: ${track.name}`) ;
+		//console.log(`\tArtist: ${track.artists[0].name}`) ;
+		//console.log(`\tURI: ${track.uri}`) ;
 	} catch (err) {
 		console.log( 'ERROR: ' + JSON.stringify(err,null,2) ) ;
 	}
@@ -89,7 +89,7 @@ var promise = initSpotify() ;
 console.log(">>> Loading playlist... ") ;
 var playlist = loadPlaylist(process.argv[2]) ;
 
-promise.then( function () {
+promise.then( async function () {
 	var query = null,
 	    track = null,
 	   tracks = [] ;
@@ -97,8 +97,17 @@ promise.then( function () {
 	while ( playlist.length > 0 ) {
 		query = playlist.shift() ;
 		console.log(`>>> Searching for "${query.artist} ${query.title}"...`) ;
-		track = firstTrackResultFor( `${query.artist} ${query.title}` ) ;
-		tracks.push(track) ;
+		track = await firstTrackResultFor( `${query.artist} ${query.title}` ) ;
+		if (track) {
+			tracks.push({
+				index: query.index,
+				name: track.name,
+				artist: track.artists[0].name,
+				uri: track.uri
+			}) ;
+		} else {
+			console.log(`ERROR: no track found for ${query.artist} ${query.title}`) ;
+		}
 	}
 
 	console.log('>>> Tracks:') ;
