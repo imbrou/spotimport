@@ -47,6 +47,7 @@ var printUsage = function printUsage () {
 var loadPlaylist = function loadPlaylist (filename) {
 	let file = require('fs').readFileSync(filename, {encoding: 'utf-8'}) ;
 	var playlist = file.split('\n')
+		.filter( entry => /\S/.test(entry) ) // remove white lines
 		.map( function (line, index) {
 			return {
 				index: index,
@@ -89,11 +90,19 @@ console.log(">>> Loading playlist... ") ;
 var playlist = loadPlaylist(process.argv[2]) ;
 
 promise.then( function () {
-	var track = playlist.shift() ;
-	track.artist = track.artist.replace(';','') ;
+	var query = null,
+	    track = null,
+	   tracks = [] ;
 
-	console.log(`>>> Searching for "${track.artist} ${track.title}"...`) ;
-	firstTrackResultFor( `${track.artist} ${track.title}` ) ;
+	while ( playlist.length > 0 ) {
+		query = playlist.shift() ;
+		console.log(`>>> Searching for "${query.artist} ${query.title}"...`) ;
+		track = firstTrackResultFor( `${query.artist} ${query.title}` ) ;
+		tracks.push(track) ;
+	}
+
+	console.log('>>> Tracks:') ;
+	console.log( JSON.stringify(tracks,null,2) ) ;
 }) ;
 
 return 0 ;
