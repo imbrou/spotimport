@@ -48,14 +48,27 @@ var loadPlaylist = function loadPlaylist (filename) {
 	let file = require('fs').readFileSync(filename, {encoding: 'utf-8'}) ;
 	var playlist = file.split('\n')
 		.filter( entry => /\S/.test(entry) ) // remove white lines
-		.map( function (line, index) {
-			return {
+		.map( (line, index) => Object({
 				index: index,
 				artist: line.split(' - ').shift().trim(),
-				title: line.split(' - ').pop().trim()
-			} ;
-		}) ;
+				name: line.split(' - ').pop().trim()
+		})) ;
 	return playlist ;
+}
+
+/**
+ * Returns a user's playlists.
+ * 
+ * @param user {String} username of the user
+ * @return the playlists' name and uri in an array of objects.
+ */
+var playlistsOfUser = async function playlistsOfUser (user) {
+	var playlists = await s.getUserPlaylists(user) ;
+	playlists = playlists.body.items.map( playlist => Object({
+		name: playlist.name,
+		uri: playlist.uri
+	})) ;
+	return playlists ;
 }
 
 /**
@@ -74,30 +87,26 @@ var firstTrackResultFor = async function firstTrackResultFor (queryTerm) {
 		//console.log(`\tArtist: ${track.artists[0].name}`) ;
 		//console.log(`\tURI: ${track.uri}`) ;
 	} catch (err) {
-		console.log( 'ERROR: ' + JSON.stringify(err,null,2) ) ;
+		console.log( `ERROR: ${err}` ) ;
 	}
 	return track ;
 }
 
-if ( process.argv.length < 3) {
-	printUsage() ;
-	return 1 ;
-}
-
-console.log(">>> Initializing API... ") ;
-var promise = initSpotify() ;
-console.log(">>> Loading playlist... ") ;
-var playlist = loadPlaylist(process.argv[2]) ;
-
-promise.then( async function () {
+/*
+ * Fetches the first track results for an array of query terms.
+ *
+ * @param queries {Array} an array of query terms
+ * @return the first result for each query in an array.
+ */
+var firstTrackResultsFor = async function firstTrackResultsFor (queries) {
 	var query = null,
 	    track = null,
 	   tracks = [] ;
 
-	while ( playlist.length > 0 ) {
-		query = playlist.shift() ;
-		console.log(`>>> Searching for "${query.artist} ${query.title}"...`) ;
-		track = await firstTrackResultFor( `${query.artist} ${query.title}` ) ;
+	while ( queries.length > 0 ) {
+		query = queries.shift() ;
+		//console.log(`>>> Searching for "${query}"...`) ;
+		track = await firstTrackResultFor(query) ;
 		if (track) {
 			tracks.push({
 				index: query.index,
@@ -106,12 +115,35 @@ promise.then( async function () {
 				uri: track.uri
 			}) ;
 		} else {
-			console.log(`ERROR: no track found for ${query.artist} ${query.title}`) ;
+			console.log(`WARN: no track found for ${query}`) ;
 		}
 	}
+	return tracks ;
+}
 
-	console.log('>>> Tracks:') ;
-	console.log( JSON.stringify(tracks,null,2) ) ;
+////////////////////////////////////////////////////////////////////////
+
+if ( process.argv.length < 3) {
+	printUsage() ;
+	return 1 ;
+}
+
+console.log(">>> Initializing API...") ;
+var promise = initSpotify() ;
+console.log(">>> Loading playlist...") ;
+var playlist = loadPlaylist(process.argv[2]) ;
+
+promise.then( async function () {
+	console.log('>>> Tracks loaded: '+playlist.length) ;
+	console.log('>>> Fetching the first track result for each track...') ;
+	var queries = playlist.map( track => `${track.artist} ${track.name}` ) ;
+	var tracks = await firstTrackResultsFor(queries) ;
+	//console.log(tracks) ;
+	console.log('>>> Tracks found: '+tracks.length) ;
+	console.log('>>> Fetching user playlists...') ;
+	var playlists = await playlistsOfUser('lebroubrou') ;
+	console.log('>>> Playlists fetched: ' + playlists.length) ;
+	//console.log(playlists) ;
 }) ;
 
 return 0 ;
